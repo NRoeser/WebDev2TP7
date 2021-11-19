@@ -1,4 +1,0 @@
-I installed git on ubuntu by using the "sudo apt install git-all" command.
-Afterwords I used "git config --global user.name "roeser-nick"" and "git config --global user.email "nickroeser@hotmail.de" to set up my account on the system.
-I created a new folder "gitRepo" where I want to initialize my new git repository, which I do with "git init --bare"
-
