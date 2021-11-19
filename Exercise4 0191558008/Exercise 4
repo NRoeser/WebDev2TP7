@@ -1,0 +1,155 @@
+This is the homework for the Rest APIs of Nick Roeser, student ID 0191558008
+To start this homework, I downloaded the necessary csv file into a new folder I created and opened a terminal inside that folder, containing the csv file.
+Next I connected to the database using "mysql -u root -p" and then entered my password, created a new Database for this homework using "CREATE DATABASE WebDevTp4" where all of the new tables and entries are supposed to go.
+While connected I entered "source db.sql" to run all of the queries that are inside of that file, which creates the necessary tables and entries.
+Before starting, I needed to enter the command "npm init -y" so that package.json file is created, which is needed for the project.
+Now all that needs to be done is to create a .js file that connects to tha database and accesses the needed data.
+
+My endfile "index.js" looks like this:
+------------------------------------------------------------------------------------------------------
+const express = require("express")
+const bodyParser = require("body-parser")
+const app = express()
+const port = 8080
+var urlencodedParser = bodyParser.urlencoded({ extended: false })
+var mysql = require("mysql")
+const { response } = require("express")
+var connection = mysql.createConnection({
+    host: "localhost",
+    user: "root",
+    password: "RootRoot1!",
+    database: "WebDev2Tp4"
+})
+
+connection.connect(function (err) {
+    if (err) throw err;
+    console.log("Connected!")
+})
+
+app.get("/", (request, response) => {
+    var welcomestring = "Hello, this is the start page for the REST APIs homework!<br/>" +
+        "Here are the most important commands: <br/>" +
+        "'/READ/(name of city)'     to read the details of a city!<br/>" +
+        "'/ADD'     to add another entry to the table 'city,'<br/>" +
+        "'/UPDATE/(name of city)/(new population)'  to update the population of an entry in the 'city' table,<br/>" +
+        "'/DELETE/(id of city)'  to delete an enty in the 'city' table!"
+    response.send(welcomestring)
+})
+
+app.get("/READ/:name", (request, response) => {
+    var name = request.params.name
+    console.log("Found site with id: " + name)
+    connection.query("SELECT * FROM city WHERE Name='" + name + "'", function (error, results, fields) {
+        console.log("Looking for entry....")
+        if (error) throw error
+        response.send(results[0])
+    })
+})
+
+
+
+app.get("/ADD", function (req, res) {
+    res.sendFile(__dirname + "/index.html")
+})
+
+app.post("/ADD_RESULT", urlencodedParser, function (req, res) {
+    var sqlquery = "SELECT MAX(ID) AS maxID FROM city"
+    var new_id = 0;
+    connection.query(sqlquery, (error, results) => {
+        if (error) throw error
+        new_id = results[0].maxID
+        new_id += 1
+        console.log(new_id)
+        var response = {
+            id: new_id,
+            name: req.body.name,
+            country_code: req.body.country_code,
+            district: req.body.district,
+            population: req.body.population
+        }
+        if (isNaN(response.population)) {
+            res.end("Population is not a number!")
+        } else {
+            var add_query = "INSERT INTO city VALUES (" + response.id + ", '" + response.name + "', '" + response.country_code +
+                "', '" + response.district + "', " + response.population + ")"
+            connection.query(add_query, function (err, rows) {
+                if (err) throw err
+                console.log(rows)
+                res.end(JSON.stringify(response))
+            })
+        }
+    })
+})
+
+app.get("/DELETE/:id", (request, response) => {
+    var id = request.params.id
+    console.log("Found site with id: " + id)
+    connection.query("DELETE FROM city WHERE ID=" + id, function (error, results, fields) {
+        console.log("Looking for entry....")
+        if (error) throw error
+        if (results.affectedRows > 0) {
+            response.send(true)
+        } else {
+            response.send(false)
+        }
+    })
+})
+
+app.get("/UPDATE/:name/:population", (request, response) => {
+    var name = request.params.name
+    var population = request.params.population
+    if (isNaN(population)) {
+        response.send("New population is not a number!")
+    } else {
+        var sqlquery = "UPDATE city SET Population = " + population + " WHERE Name = '" + name + "'"
+        connection.query(sqlquery, function (error, results, fields) {
+            if (error) throw error
+            connection.query("SELECT * FROM city WHERE Name='" + name + "'", function (error, results, fields) {
+                console.log("Looking for entry....")
+                if (error) throw error
+                response.send(results[0])
+            })
+        })
+    }
+})
+
+
+app.listen(port, () => {
+    console.log('App listening on port ' + port + ".")
+})
+
+
+------------------------------------------------------------------------------------------------
+
+The first part is where all of the modules are declared and the variables for the mysql connection are determined, these have to be adjusted so that they have the correct name, password and database name for the corresponsing user.
+Afterwords, the connection to mysql is set up.
+The rest of the file functions describe the different CRUD operations, if you visit "localhost:8080" you are sent to a start page that explains the different commands and how to use them.
+- "READ/" and then the name of the city does a simple SELECT * query for the corresponding name.
+
+- "ADD" sends you to the index.html page:
+--------------------------------------------------------------------------------------------------
+    <html>  
+    	<body>  
+    		<form action="http://localhost:8080/ADD_RESULT" method="POST">  
+    			Name: <input type="text" name="name">  <br>  
+    			Country Code: <input type="text" name="country_code">  <br>  
+    			District: <input type="text" name="district">  <br>  
+    			Population: <input type="text" name="population">  
+    			<input type="submit" value="Submit">  
+    		</form>  
+    	</body>  
+    </html>  
+---------------------------------------------------------------------------------------------------
+Here you can enter the different values for the attributes of a city, once you submit, the new entry gets added to the table.
+The ID is generated automatically by looking for the highest ID value in the table and then adding 1 to it, so that the ID is always unique.
+At the end, another READ operation is done to display the new entry on the site.
+
+- "DELETE/" and then the ID of a city deletes the corresponding entry from the table ad returns true if the operation was succesfull, false if not.
+
+- "UPDATE/" followed by the name of the city, then by the new number that is supposed to replace the old population performs a simple UPDATE WHERE query to change the old value.
+
+In order to start the project and test the operations, we need to use the command "node index.js" in the terminal while being in the folder with the javascript file or you need to indicate the absolute path to the file.
+Then you'll be connected and can visit "localhost:8080" to see the welcome page and then execute the CRUD oprations!
+
+
+
